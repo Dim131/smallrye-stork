@@ -44,6 +44,11 @@ public class PowerOfTwoChoicesLoadBalancer implements LoadBalancer {
         }
 
         ServiceInstance first = instances.get(random.nextInt(count));
+        
+        double beta = 0.5;
+        if (random.nextDouble() > beta) {
+           return new ServiceInstanceWithStatGathering(first, collector);
+        }
         ServiceInstance second = instances.get(random.nextInt(count));
 
         int concurrencyOfFirst = collector.get(first.getId());
