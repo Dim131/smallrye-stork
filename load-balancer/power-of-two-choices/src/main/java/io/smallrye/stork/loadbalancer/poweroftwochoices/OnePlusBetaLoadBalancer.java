@@ -11,16 +11,16 @@ import io.smallrye.stork.api.NoServiceInstanceFoundException;
 import io.smallrye.stork.api.ServiceInstance;
 import io.smallrye.stork.impl.ServiceInstanceWithStatGathering;
 import io.smallrye.stork.loadbalancer.requests.InflightRequestCollector;
+import io.smallrye.stork.loadbalancer.requests.RelaxedInflightRequestCollector;
 
 /**
  * Select two random destinations and then select the one with the least assigned requests. This avoids the overhead of
  * least-requests and the worst case for random where it selects a busy destination.
  */
-public class PowerOfTwoChoicesLoadBalancer implements LoadBalancer {
+public class OnePlusBetaLoadBalancer implements LoadBalancer {
 
-    private final InflightRequestCollector collector = new InflightRequestCollector();
-
-
+    private final RelaxedInflightRequestCollector collector = new RelaxedInflightRequestCollector();
+    // private final InflightRequestCollector collector = new InflightRequestCollector();
     private final Random random;
     private final double beta;
 
@@ -29,9 +29,13 @@ public class PowerOfTwoChoicesLoadBalancer implements LoadBalancer {
      *
      * @param useSecureRandom {@code true} to use a {@link SecureRandom} instead of a regular {@link Random}
      */
-    protected PowerOfTwoChoicesLoadBalancer(boolean useSecureRandom, double beta) {
+    protected OnePlusBetaLoadBalancer(boolean useSecureRandom, double beta) {
         random = useSecureRandom ? new SecureRandom() : new Random();
         this.beta = beta;
+    }
+
+    public void setInstances(Collection<ServiceInstance> serviceInstances) {
+        collector.setInstances(serviceInstances);
     }
 
     @Override
@@ -50,8 +54,8 @@ public class PowerOfTwoChoicesLoadBalancer implements LoadBalancer {
         ServiceInstance first = instances.get(random.nextInt(count));
 
         if (beta < 1.0 && random.nextDouble() > beta) {
-            int concurrencyOfFirst = collector.get(first.getId()); // Not entirely sure why this is needed.
-           return new ServiceInstanceWithStatGathering(first, collector);
+            //int concurrencyOfFirst = collector.get(first.getId()); // Not entirely sure why this is needed.
+            return new ServiceInstanceWithStatGathering(first, collector);
         }
         ServiceInstance second = instances.get(random.nextInt(count));
 
@@ -63,6 +67,10 @@ public class PowerOfTwoChoicesLoadBalancer implements LoadBalancer {
         } else {
             return new ServiceInstanceWithStatGathering(second, collector);
         }
+    }
+
+    public void printCounters() {
+        collector.printCounters();
     }
 
     @Override
